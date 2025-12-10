@@ -12,6 +12,8 @@ namespace WordPuzzle.Game.Model
         private HashSet<string> _validWords;
         private List<string> _wordList;
         private PuzzleDataRecord _puzzle;
+        private List<PuzzleDataRecord> _allPuzzles;
+        private int _currentPuzzleIndex = 0;
 
         public bool IsInitialized => _validWords != null;
         public PuzzleDataRecord CurrentPuzzle => _puzzle;
@@ -28,7 +30,16 @@ namespace WordPuzzle.Game.Model
             }
 
             var parsed = JsonUtility.FromJson<PuzzleDataRoot>(puzzleFile.text);
-            _puzzle = parsed?.puzzles != null && parsed.puzzles.Count > 0 ? parsed.puzzles[0] : null;
+            _allPuzzles = parsed?.puzzles ?? new List<PuzzleDataRecord>();
+            
+            if (_allPuzzles.Count == 0)
+            {
+                Debug.LogError("No puzzles found in puzzles_mostsolutions.json!");
+                return;
+            }
+
+            _currentPuzzleIndex = 0;
+            _puzzle = _allPuzzles[_currentPuzzleIndex];
 
             if (_puzzle == null || string.IsNullOrWhiteSpace(_puzzle.start) || _puzzle.rack == null)
             {
@@ -65,6 +76,27 @@ namespace WordPuzzle.Game.Model
         {
              if (!IsInitialized) Initialize();
              return _wordList[Random.Range(0, _wordList.Count)];
+        }
+
+        public bool LoadNextPuzzle()
+        {
+            if (_allPuzzles == null || _allPuzzles.Count == 0)
+            {
+                Debug.LogError("No puzzles available to load.");
+                return false;
+            }
+
+            _currentPuzzleIndex = (_currentPuzzleIndex + 1) % _allPuzzles.Count;
+            _puzzle = _allPuzzles[_currentPuzzleIndex];
+
+            if (_puzzle == null || string.IsNullOrWhiteSpace(_puzzle.start) || _puzzle.rack == null)
+            {
+                Debug.LogError($"Puzzle at index {_currentPuzzleIndex} is invalid.");
+                return false;
+            }
+
+            Debug.Log($"Loaded puzzle {_currentPuzzleIndex + 1}/{_allPuzzles.Count}: {_puzzle.start}");
+            return true;
         }
 
         private static List<string> ParseWords(string raw)

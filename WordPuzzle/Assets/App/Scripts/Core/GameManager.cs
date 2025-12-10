@@ -95,7 +95,11 @@ namespace WordPuzzle.Core
 
         public void NextLevel()
         {
-            StartGame(); // Logic is same as start new game roughly
+            if (!WordDictionary.Instance.LoadNextPuzzle())
+            {
+                Debug.LogWarning("Failed to load next puzzle, restarting current puzzle.");
+            }
+            StartGame();
         }
 
         private void TriggerEndGame(EndGameResult result, int tilesRemaining, int possibleMoves)

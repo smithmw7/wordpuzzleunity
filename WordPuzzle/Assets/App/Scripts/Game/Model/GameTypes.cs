@@ -53,5 +53,9 @@ namespace WordPuzzle.Game.Model
         public string endWord;
         public List<TileData> rackTiles;
         public List<SolutionStep> solution;
+
+        // Debug/meta data surfaced from the puzzle JSON
+        public int totalSolutions;
+        public int totalPaths;
     }
 }

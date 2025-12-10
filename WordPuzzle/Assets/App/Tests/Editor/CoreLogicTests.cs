@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -12,13 +13,10 @@ namespace Tests
         [Test]
         public void WordDictionary_Loads_And_Validates()
         {
-            // Requires "words" TextAsset in Resources. 
-            // In EditMode, Resources.Load might fail if not in the right context, but usually works if asset database is refreshed.
-            // For strict unit testing without Unity Scene, we might mock it, but here we test integration.
-            
             WordDictionary.Instance.Initialize();
             Assert.IsTrue(WordDictionary.Instance.IsInitialized);
-            Assert.IsTrue(WordDictionary.Instance.IsWordValid("hello"));
+            Assert.IsTrue(WordDictionary.Instance.IsWordValid("about"));
+            Assert.IsTrue(WordDictionary.Instance.IsWordValid("abort"));
             Assert.IsFalse(WordDictionary.Instance.IsWordValid("zzzzz"));
         }
 
@@ -27,14 +25,21 @@ namespace Tests
         {
             WordDictionary.Instance.Initialize();
             
-            string currentWord = "PLATE";
-            // Target: SLATE. We need 'S'.
-            var rackTiles = new List<TileData> { new TileData("1", "S"), new TileData("2", "X") };
+            string currentWord = "ABOUT";
+            var puzzleRack = WordDictionary.Instance.CurrentPuzzle.rack;
+            var rackTiles = puzzleRack
+                .Select((c, idx) => new TileData(idx.ToString(), c.ToUpper()))
+                .ToList();
             
             var moves = GameRules.CalculatePossibleMoves(currentWord, rackTiles);
             
-            Assert.IsTrue(moves.ContainsKey(1)); // 1 tile used
-            Assert.Contains("SLATE", moves[1]);
+            var allMoves = new List<string>();
+            foreach (var entry in moves.Values)
+            {
+                allMoves.AddRange(entry);
+            }
+
+            Assert.Contains("SHOUT", allMoves);
         }
 
         [Test]
@@ -47,7 +52,9 @@ namespace Tests
             Assert.AreEqual(5, level.startWord.Length);
             Assert.AreEqual(5, level.endWord.Length);
             Assert.AreEqual(5, level.rackTiles.Count);
-            Assert.IsTrue(level.solution.Count > 0);
+            Assert.AreEqual(level.startWord, level.endWord);
+            Assert.Greater(level.totalSolutions, 0);
+            Assert.Greater(level.totalPaths, 0);
         }
     }
 }

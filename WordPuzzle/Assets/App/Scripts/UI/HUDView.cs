@@ -8,19 +8,24 @@ namespace WordPuzzle.UI
     public class HUDView : MonoBehaviour
     {
         [Header("References")]
-        public Button shuffleButton;
-        public Button submitButton;
-        public TextMeshProUGUI tilesLeftText; // Example of feedback
+        [SerializeField] private Button shuffleButton;
+        [SerializeField] private Button submitButton;
+        [SerializeField] private TextMeshProUGUI tilesLeftText; // Example of feedback
+        [SerializeField] private BoardController boardController;
+        [SerializeField] private RackController rackController;
 
-        private BoardController _boardController;
-        private RackController _rackController;
+        private void Awake()
+        {
+            ValidateAssignments();
+        }
+
+        private void OnValidate()
+        {
+            ValidateAssignments();
+        }
 
         private void Start()
         {
-            // Auto-find controllers if not assigned (Decoupling: UI finds what it needs or is injected)
-            _boardController = FindObjectOfType<BoardController>();
-            _rackController = FindObjectOfType<RackController>();
-
             if (shuffleButton != null)
                 shuffleButton.onClick.AddListener(OnShuffleClicked);
             
@@ -30,12 +35,40 @@ namespace WordPuzzle.UI
 
         private void OnShuffleClicked()
         {
-            if (_rackController != null) _rackController.Shuffle();
+            if (rackController != null) rackController.Shuffle();
         }
 
         private void OnSubmitClicked()
         {
-            if (_boardController != null) _boardController.SubmitWord();
+            if (boardController != null) boardController.SubmitWord();
+        }
+
+        private void ValidateAssignments()
+        {
+            if (boardController == null)
+            {
+                Debug.LogWarning($"{nameof(HUDView)} on {name} missing BoardController reference. Assign in Inspector.", this);
+            }
+
+            if (rackController == null)
+            {
+                Debug.LogWarning($"{nameof(HUDView)} on {name} missing RackController reference. Assign in Inspector.", this);
+            }
+
+            if (shuffleButton == null)
+            {
+                Debug.LogWarning($"{nameof(HUDView)} on {name} missing Shuffle Button reference. Assign in Inspector.", this);
+            }
+
+            if (submitButton == null)
+            {
+                Debug.LogWarning($"{nameof(HUDView)} on {name} missing Submit Button reference. Assign in Inspector.", this);
+            }
+
+            if (tilesLeftText == null)
+            {
+                Debug.LogWarning($"{nameof(HUDView)} on {name} missing Tiles Left Text reference. Assign in Inspector.", this);
+            }
         }
     }
 }

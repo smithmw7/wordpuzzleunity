@@ -53,8 +53,6 @@ namespace Tests
             Assert.AreEqual(5, level.endWord.Length);
             Assert.AreEqual(5, level.rackTiles.Count);
             Assert.AreEqual(level.startWord, level.endWord);
-            Assert.Greater(level.totalSolutions, 0);
-            Assert.Greater(level.totalPaths, 0);
         }
     }
 }

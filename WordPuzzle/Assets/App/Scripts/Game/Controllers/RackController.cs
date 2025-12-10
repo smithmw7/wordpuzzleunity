@@ -64,5 +64,23 @@ namespace WordPuzzle.Game.Controllers
                 t.transform.SetSiblingIndex(Random.Range(0, rackContainer.childCount));
             }
         }
+
+        public bool IsRackEmpty => rackContainer != null && rackContainer.childCount == 0;
+
+        public List<TileData> GetRemainingTilesData()
+        {
+            var list = new List<TileData>();
+            if (rackContainer == null) return list;
+
+            var tiles = rackContainer.GetComponentsInChildren<TileView>();
+            foreach (var tile in tiles)
+            {
+                if (tile != null && tile.Data != null)
+                {
+                    list.Add(tile.Data);
+                }
+            }
+            return list;
+        }
     }
 }

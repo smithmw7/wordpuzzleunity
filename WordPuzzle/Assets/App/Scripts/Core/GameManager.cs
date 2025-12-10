@@ -1,7 +1,9 @@
 using UnityEngine;
 using WordPuzzle.Game.Model;
 using WordPuzzle.UI;
+using WordPuzzle.Game.Controllers;
 using System.Collections;
+using System.Collections.Generic;
 
 namespace WordPuzzle.Core
 {
@@ -11,6 +13,13 @@ namespace WordPuzzle.Core
 
         public LevelData CurrentLevel { get; private set; }
         public int CurrentRackSize { get; private set; } = 5;
+
+        [Header("Scene References")]
+        [SerializeField] private RackController rackController;
+        [SerializeField] private BoardController boardController;
+
+        private readonly List<string> _wordHistory = new List<string>();
+        private bool _endShown = false;
 
         private void Awake()
         {
@@ -29,16 +38,6 @@ namespace WordPuzzle.Core
             UIManager.Instance.ShowScreen(GameScreen.StartMenu);
         }
 
-        private void OnEnable()
-        {
-            EventManager.StartListening("WordSubmitted", OnWordSubmitted);
-        }
-
-        private void OnDisable()
-        {
-            EventManager.StopListening("WordSubmitted", OnWordSubmitted);
-        }
-
         public void StartGame()
         {
             StartCoroutine(LoadLevelRoutine());
@@ -51,47 +50,69 @@ namespace WordPuzzle.Core
 
             // Generate Level (Heavy operation, might want to thread this actualy, but coroutine is ok for now)
             CurrentLevel = LevelGenerator.GenerateLevel(CurrentRackSize);
+
+            _wordHistory.Clear();
+            _endShown = false;
+            if (CurrentLevel != null && !string.IsNullOrWhiteSpace(CurrentLevel.startWord))
+            {
+                _wordHistory.Add(CurrentLevel.startWord.ToUpper());
+            }
             
             EventManager.TriggerEvent("LevelLoaded", CurrentLevel);
             UIManager.Instance.ShowScreen(GameScreen.GameHUD);
         }
 
-        private void OnWordSubmitted(object payload)
+        public void HandleWordAccepted(string lockedWord, List<TileData> remainingTiles, string playedWord)
         {
-            // Logic: The BoardController has already validated the word and consumed tiles.
-            // We just need to check if we won (Rack Empty).
-            
-            // We can query the RackController or track it ourselves. 
-            // Since we are the source of truth for "CurrentLevel", we know how many tiles started.
-            // But tracking consumed tiles is cleaner via event.
-            // Let's assume for now if a valid word is submitted that uses tiles, we check if rack is empty.
-            
-            // Actually, best way: RackController should broadcast "RackEmpty" or we check it.
-            // Let's rely on a helper or find object for now to keep it simple as requested.
-            
-            var rack = FindObjectOfType<WordPuzzle.Game.Controllers.RackController>();
-            if (rack != null && rack.transform.childCount == 0) // transform.childCount includes the tiles
+            if (CurrentLevel == null) return;
+            if (_endShown) return; // prevent double-show
+            if (!string.IsNullOrWhiteSpace(playedWord))
             {
-                // Wait a moment for visual effect?
-                StartCoroutine(WinRoutine());
+                _wordHistory.Add(playedWord.ToUpper());
             }
-        }
 
-        private IEnumerator WinRoutine()
-        {
-            EventManager.TriggerEvent("LevelWon", null);
-            yield return new WaitForSeconds(0.5f);
-            LevelWon();
-        }
+            var remaining = remainingTiles ?? new List<TileData>();
+            int tilesRemaining = remaining.Count;
+            int possibleMoves = 0;
 
-        public void LevelWon()
-        {
-             UIManager.Instance.ShowScreen(GameScreen.WinModal);
+            var moves = GameRules.CalculatePossibleMoves(lockedWord.ToUpper(), remaining);
+            foreach (var entry in moves.Values)
+            {
+                possibleMoves += entry.Count;
+            }
+
+            if (tilesRemaining == 0)
+            {
+                TriggerEndGame(EndGameResult.Win, tilesRemaining, possibleMoves);
+                return;
+            }
+
+            if (possibleMoves == 0)
+            {
+                TriggerEndGame(EndGameResult.Lose, tilesRemaining, possibleMoves);
+            }
         }
 
         public void NextLevel()
         {
             StartGame(); // Logic is same as start new game roughly
+        }
+
+        private void TriggerEndGame(EndGameResult result, int tilesRemaining, int possibleMoves)
+        {
+            if (_endShown) return;
+            var payload = new EndGamePayload
+            {
+                result = result,
+                wordsPlayed = new List<string>(_wordHistory),
+                tilesRemaining = tilesRemaining,
+                possibleMoves = possibleMoves,
+                totalSolutions = CurrentLevel?.totalSolutions ?? 0,
+                totalPaths = CurrentLevel?.totalPaths ?? 0
+            };
+
+            EventManager.TriggerEvent("EndGame", payload);
+            _endShown = true;
         }
     }
 }

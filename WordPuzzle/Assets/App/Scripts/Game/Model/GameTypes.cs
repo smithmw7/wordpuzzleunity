@@ -58,4 +58,21 @@ namespace WordPuzzle.Game.Model
         public int totalSolutions;
         public int totalPaths;
     }
+
+    public enum EndGameResult
+    {
+        Win,
+        Lose
+    }
+
+    [Serializable]
+    public class EndGamePayload
+    {
+        public EndGameResult result;
+        public List<string> wordsPlayed;
+        public int tilesRemaining;
+        public int possibleMoves;
+        public int totalSolutions;
+        public int totalPaths;
+    }
 }

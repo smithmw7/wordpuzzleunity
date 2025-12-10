@@ -12,9 +12,18 @@ namespace WordPuzzle.Game.Controllers
         [Header("Config")]
         public Transform slotsContainer;
         public GameObject slotPrefab;
+        [SerializeField] private RackController rackController;
         
         private List<SlotView> _slots = new List<SlotView>();
         private LevelData _currentLevel;
+
+        private void Awake()
+        {
+            if (rackController == null)
+            {
+                Debug.LogWarning($"{nameof(BoardController)} on {name} missing RackController reference. Assign in Inspector.", this);
+            }
+        }
 
         private void OnEnable()
         {
@@ -99,20 +108,14 @@ namespace WordPuzzle.Game.Controllers
                     }
                 }
                 
-                // Check Rack Empty
-                var rackHasTiles = FindObjectOfType<RackController>().transform.childCount > 0; // Quick dirty check or use event
-                // Actually RackController should check count.
-                // Let's rely on event.
-                
-                // If we consumed tiles, we should check if level is complete.
-                // In React app, win condition is rackTiles.length === 0.
-                
-                // We need to know how many tiles are left.
-                // A better way: BoardController shouldn't know about Rack internal state ideally, 
-                // but checking GameObject hierarchy is a valid Unity pattern for simple games.
-                
-                // Let's Trigger "WordSubmitted" event and let GameManager decide?
-                EventManager.TriggerEvent("WordSubmitted", candidateWord);
+                if (rackController == null)
+                {
+                    Debug.LogError($"{nameof(BoardController)} missing RackController reference, cannot evaluate end state.", this);
+                    return;
+                }
+
+                var remainingTiles = rackController.GetRemainingTilesData();
+                GameManager.Instance.HandleWordAccepted(candidateWord.ToUpper(), remainingTiles, candidateWord);
             }
             else
             {
